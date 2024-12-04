@@ -8,13 +8,21 @@ This is Jason Press and Mia Stulac's project for COSC 200
 For ~bootstrap.py~ to run, the following packages must be installed (note: versions can be earlier, I just don't care to find out what versions are good):
 
 - [[https://musescore.org/en][Musescore 4.3+]]
-- [[https://nodejs.org/en][npx]] (from Node.js)
+- [[https://nodejs.org/en][Node.js]] (or npx)
 - ~bash~, but this should be a part Linux/Mac systems already
 - [[https://www.python.org/][Python 3.11+]]
 
+You can check if the packages are installed by running the following commands:
+
+#+begin_src:
+mscore --version
+npx --version
+python3 --version
+#+end_src
+
 Git clone this repo.
 
-Run ~src/bootstrap.py~. It will create the ~/data~ directory inside the project.
+Run ~src/bootstrap.py~ (you can execute ~python3 bootstrap.py~ in the src directory). It will create the ~/data~ directory inside the project.
 
 * What is left to do?
 
