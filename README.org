@@ -1,0 +1,11 @@
+#+title: COSC 200
+
+This is Jason Press and Mia Stulac's project for COSC 200
+
+* TODO
+
+1. Finish the bootstrapping process
+   - Create a JSON file full of Musescore links
+   - Make a Python script that calls ~librescore-runner.sh~ and ~musescore-runner.sh~
+2. Write a Python script that loads the training data
+3. Write the neural network optimizer
