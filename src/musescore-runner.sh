@@ -4,7 +4,7 @@
 # an individual directory contains a .xml and a folder of pngs
 
 if ! command -v mscore &> /dev/null; then
-    echo "Musescore is not installed."
+    echo "Musescore is not installed. Install Musescore and try again."
     exit 1
 fi
 

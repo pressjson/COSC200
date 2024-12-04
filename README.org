@@ -3,7 +3,21 @@
 
 This is Jason Press and Mia Stulac's project for COSC 200
 
-* TODO
+* Setup
+
+For ~bootstrap.py~ to run, the following packages must be installed (note: versions can be earlier, I just don't care to find out what versions are good):
+
+- [[https://musescore.org/en][Musescore 4.3+]]
+- [[https://nodejs.org/en][npx]] (from Node.js)
+- ~bash~, but this should be a part Linux/Mac systems already
+- [[https://www.python.org/][Python 3.11+]]
+
+Git clone this repo.
+
+Run ~src/bootstrap.py~. It will create the ~/data~ directory inside the project.
+
+* What is left to do?
+
 1. Add a bunch of Musescore URLs to ~src/url.txt~, each URL on its own line
 2. Write a Python script that loads the training data
 3. Write the neural network optimizer

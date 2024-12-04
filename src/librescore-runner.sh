@@ -3,15 +3,9 @@
 # takes a musescore url and automatically downloads it to `data`
 # dependencies: expect
 
-# Check if URL is provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <URL>"
-    exit 1
-fi
-
 # Check if `expect` is installed
-if ! command -v expect &> /dev/null; then
-  echo "'expect' is not installed. Please install it first."
+if ! command -v npx &>/dev/null; then
+  echo "npx is not installed. Install Node.js or npx and try again."
   exit 1
 fi
 
