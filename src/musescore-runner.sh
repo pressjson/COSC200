@@ -8,11 +8,9 @@ if ! command -v mscore &> /dev/null; then
     exit 1
 fi
 
-echo "Is this even working?"
-
 file_path=$1
-output_xml=$2/xml.xml
-output_png=$2/png/png.png
+output_xml="../data/"$2/xml.xml
+output_png="../data/"$2/png/png.png
 mkdir "$2"
 mkdir "$2"/png
 

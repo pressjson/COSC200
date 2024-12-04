@@ -1,3 +1,4 @@
 # Do not include anything in the data directory
 
 data/**
+.directory
