@@ -2,3 +2,4 @@
 
 data/**
 .directory
+**/__pychache__/**
