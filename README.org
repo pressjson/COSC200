@@ -22,10 +22,15 @@ python3 --version
 
 Git clone this repo.
 
+Ensure ~dl-librescore~ is installed by running ~npx dl-librescore~. If this is the first time running it, it should install some packages and do its thing. Once a dialog appears asking for a file, you can stop the process (~C-c~).
+
+Ensure ~mscore~ is a part of ~$PATH~. If ~mscore --version~ shows a version of Musescore, then you're good. If not, add it to your ~$PATH~.
+
 Run ~src/bootstrap.py~ (you can execute ~python3 bootstrap.py~ in the src directory). It will create the ~/data~ directory inside the project.
 
 * What is left to do?
 
 1. Add a bunch of Musescore URLs to ~src/url.txt~, each URL on its own line
 2. Write a Python script that loads the training data
+   - Done, kinda. It's jank. This whole project is jank
 3. Write the neural network optimizer
