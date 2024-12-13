@@ -73,7 +73,7 @@ if True:
 
     print("Initializing the neural network")
     model = SimpleCNN()
-    criterion = nn.MSELoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     print("Training the neural network")
