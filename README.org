@@ -48,8 +48,8 @@ Run ~src/bootstrap.py~ (you can execute ~python3 bootstrap.py~ in the src direct
    - Note: the URL should be to the actual pdf file, ending in ~.pdf~.
 2. Write a Python script that converts the high quality images to low quality images
    - Divide pdf files high quality images
-   - Then the high quality images into low quality images
-   - Then the low quality images into ~n x n~ regions
+   - Then the high quality images into ~n x n~ regions
+   - Then the high quality squares into low quality squares
 3. Write the neural network
    - This /might/ require dividing the image into regions, upscaling each region, and then stitching them back together. If so, find out how to do this
 5. Hope it's better than traditional general-purpose upscaling techniques in some manner
