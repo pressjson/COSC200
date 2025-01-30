@@ -1,19 +1,30 @@
 #+title: COSC 200
 #+author: Jason Press
 
-This is Jason Press and Mia Stulac's project for COSC 200.
+This is Jason Press and Mia Stulac's project for COSC 200. Although I don't know if Mia Stulac is caring about this anymore, so I guess it's just Jason Press (?)
 
 This project is training a neural network to upscale scanned scores.
 
 * Setup the data
 
-For ~bootstrap.py~ to run, the following packages must be installed (note: versions can be earlier, I just don't care to find out what versions are good):
+For literally anything in this project to run, you /need/ the following packages:
+
+- [[https://www.python.org/][Python 3.11+]]
+- [[https://pytorch.org/][PyTorch]]
+- ~bash~
+
+NOTE: ~musescore_bootstrap.py~ is being depricated in favor of ~imslp_bootstrap.py~.
+
+For ~imslp_bootstrap.py~ to run, you need the following packages:
+
+- ~curl~
+
+Yeah that's it.
+
+For ~musescore_bootstrap.py~ to run, the following packages must be installed (note: versions can be earlier, I just don't care to find out what versions are good):
 
 - [[https://musescore.org/en][Musescore 4.3+]]
 - [[https://nodejs.org/en][Node.js]] (or npx)
-- ~bash~, but this should be a part Linux/Mac systems already
-- [[https://www.python.org/][Python 3.11+]]
-- [[https://pytorch.org/][PyTorch]]
 
 You can check if the packages are installed by running the following commands:
 
@@ -33,8 +44,14 @@ Run ~src/bootstrap.py~ (you can execute ~python3 bootstrap.py~ in the src direct
 
 * What is left to do?
 
-1. Add a bunch of Musescore URLs to ~src/url.txt~, each URL on its own line
+1. Add a bunch of IMSLP scores to ~imslp_urls.txt~
+   - Note: the URL should be to the actual pdf file, ending in ~.pdf~.
 2. Write a Python script that converts the high quality images to low quality images
-   - Done
-3. Write the neural network optimizer
-   - Time to train it on Ficus
+   - Divide pdf files high quality images
+   - Then the high quality images into low quality images
+   - Then the low quality images into ~n x n~ regions
+3. Write the neural network
+   - This /might/ require dividing the image into regions, upscaling each region, and then stitching them back together. If so, find out how to do this
+5. Hope it's better than traditional general-purpose upscaling techniques in some manner
+6. Write a paper
+7. Profit

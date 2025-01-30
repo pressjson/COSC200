@@ -3,7 +3,7 @@
 # takes a file path, and converts the file into data in a new directory
 
 if ! command -v mscore &> /dev/null; then
-    echo "Musescore is not installed. Install Musescore and try again."
+    echo "Musescore is not installed. Make sure Musescore is in $PATH and callable by \"mscore\"."
     exit 1
 fi
 

@@ -13,7 +13,9 @@ fi
 URL=$1
 
 # one step back from pwd to write to data
-mkdir ../data
+if ! [ -d ../data ]; then
+  mkdir ../data
+fi
 data_dir=$(dirname $(pwd))/data
 
 # Use `expect` to automate the interaction with `dl-librescore`
