@@ -12,46 +12,21 @@ For literally anything in this project to run, you /need/ the following packages
 - [[https://www.python.org/][Python 3.11+]]
 - [[https://pytorch.org/][PyTorch]]
 - ~bash~
-
-NOTE: ~musescore_bootstrap.py~ is being depricated in favor of ~imslp_bootstrap.py~.
-
-For ~imslp_bootstrap.py~ to run, you need the following packages:
-
 - ~curl~
+- ~magick~
 
-Yeah that's it.
-
-For ~musescore_bootstrap.py~ to run, the following packages must be installed (note: versions can be earlier, I just don't care to find out what versions are good):
-
-- [[https://musescore.org/en][Musescore 4.3+]]
-- [[https://nodejs.org/en][Node.js]] (or npx)
-
-You can check if the packages are installed by running the following commands:
-
-#+begin_src:
-mscore --version
-npx --version
-python3 --version
-#+end_src
-
-Git clone this repo.
-
-Ensure ~dl-librescore~ is installed by running ~npx dl-librescore~. If this is the first time running it, it should install some packages and do its thing. Once a dialog appears asking for a file, you can stop the process (~C-c~).
-
-Ensure ~mscore~ is a part of ~$PATH~. If ~mscore --version~ shows a version of Musescore, then you're good. If not, add it to your ~$PATH~.
-
-Run ~src/bootstrap.py~ (you can execute ~python3 bootstrap.py~ in the src directory). It will create the ~/data~ directory inside the project.
+Set up the venv with ~source venv/bin/activate~ or however you activate with your specific shell.
 
 * What is left to do?
 
 1. Add a bunch of IMSLP scores to ~imslp_urls.txt~
    - Note: the URL should be to the actual pdf file, ending in ~.pdf~.
-2. Write a Python script that converts the high quality images to low quality images
-   - Divide pdf files high quality images
-   - Then the high quality images into ~n x n~ regions
-   - Then the high quality squares into low quality squares
-3. Write the neural network
-   - This /might/ require dividing the image into regions, upscaling each region, and then stitching them back together. If so, find out how to do this
-5. Hope it's better than traditional general-purpose upscaling techniques in some manner
-6. Write a paper
-7. Profit
+2. Make my code not a jumbled spaghetti mess of garbage that works on a prayer
+3. Write the neural network (done. thanks perplexity ;)
+4. Make the stitcher
+5. Generalize the code, so the very specific functions like [[file:src/chunker.py][chunker.py]] work in the more generalized circumstances that they need to work in
+   - Chiefly, just change the path to chunk to, not just ~data/images/chunks~
+6. Make a ~requirements.txt~ with pip so dependencies can be ~pip install -r requirements.txt~'d
+7. Hope it's better than traditional general-purpose upscaling techniques in some manner
+8. Write a paper
+9. Profit

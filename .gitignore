@@ -3,3 +3,4 @@
 data/**
 .directory
 **/__pycache__/
+**/venv/
