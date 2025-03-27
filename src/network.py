@@ -57,7 +57,7 @@ class ImageEnhancementNet(nn.Module):
         return x
 
 
-if __name__ == "__main__":
+def make_model():
     # Set up dataset and dataloader
     transform = transforms.Compose(
         [
@@ -108,3 +108,7 @@ if __name__ == "__main__":
 
     # Save the model
     torch.save(model.state_dict(), "image_enhancement_model.pth")
+
+
+if __name__ == "__main__":
+    make_model()

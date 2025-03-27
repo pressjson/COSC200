@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 
 
 def get_imslp_files() -> None:
@@ -21,9 +22,11 @@ def get_imslp_files() -> None:
     subprocess.run(["mkdir", "../data/pdf_files"])
 
     with open(url_file, "r") as infile:
+
         i = 0
         for url in infile:
             url = url.strip()
+            time.sleep(1)  # so IMSLP doesn't get mad
             command = [
                 "curl",
                 url,
@@ -35,32 +38,37 @@ def get_imslp_files() -> None:
             i = i + 1
 
 
-def make_images() -> None:
+def make_images(
+    input_path="../data/pdf_files/", output_path="../data/images", output_name="0.jpg"
+):
     """
-    converts the files in ../data/pdf_files into a series of jpg files in ../data/images
+    converts the files input_path into a series of jpg files in output_path
 
     dependencies:
         imagemagick
-        the execution of get_imslp_files
+
+    args:
+        input_path: the path of the pdf file, with file extension
+        output_path: the place where the images are supposed to be saved
+        output_name: name of the file to be outputted, with file extension
+
     """
 
-    subprocess.run(["mkdir", "../data/images"])
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
-    i = 0
-    for pdf_file in os.listdir("../data/pdf_files/"):
-        command = [
-            "magick",
-            "-density",
-            "300",
-            "../data/pdf_files/" + pdf_file,
-            "../data/images/" + str(i) + ".jpg",
-        ]
-        print(command)
-        subprocess.run(command)
-        i = i + 1
+    command = [
+        "magick",
+        "-density",
+        "300",
+        input_path,
+        os.path.join(output_path, output_name),
+    ]
+    print(command)
+    subprocess.run(command)
 
 
-def make_image_pairs(cleanup: bool = True) -> None:
+def make_image_pairs(cleanup=True) -> None:
     """
     converts the jpgs in ../data/images into high quality/low quality image pairs in ../data/images/i
 
@@ -73,7 +81,17 @@ def make_image_pairs(cleanup: bool = True) -> None:
 
     args:
         cleanup (bool): toggles whether or not to remove the pdf images from ../data/images
+
+    @TODO: clean this up
     """
+    i = 0
+    path = "../data/pdf_files"
+    for pdf_file in os.listdir("../data/pdf_files"):
+        make_images(
+            input_path=os.path.join(path, pdf_file), output_name=str(i) + ".jpg"
+        )
+        i = i + 1
+
     i = 0
 
     for image in os.listdir("../data/images"):

@@ -5,7 +5,7 @@ from PIL import Image
 
 def make_chunks(
     quality="hq",
-    output_dir_number=None,
+    input_file_location="../data/images",
     output_dir="../data/chunks",
     chunk_size=256,
     delta=256,
@@ -14,20 +14,18 @@ def make_chunks(
 
     args:
         quality: name of the image to be chunked, usually either "hq" or "lq"
-        output_dir_number: the number of the subdirectory to be written to, which is output_dir/%number%
-        output_dir: default is "../data/chunks", but can be set if using test data
+        input_file_location: the location of the file, complete with everything
+        output_dir: default is "../data/chunks", but can be set if using test data. will make the dir
         chunk_size: the size of the chunks
         delta: the offset for each chunk
         @TODO: make these set in a settings file/class
         @TODO: clean this up so it works generally
     """
-    image = Image.open(
-        "../data/images/" + str(output_dir_number) + "/" + quality + ".jpg"
-    )
+    image = Image.open(input_file_location)
     width, height = image.size
 
-    if not os.path.exists(os.path.join(output_dir, str(output_dir_number))):
-        os.makedirs(os.path.join(output_dir, str(output_dir_number)))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     for x in range(0, width, delta):
         for y in range(0, height, delta):
@@ -35,13 +33,12 @@ def make_chunks(
             crop.save(
                 os.path.join(
                     output_dir,
-                    str(output_dir_number),
                     quality + "_" + str(x) + "_" + str(y) + ".jpg",
                 )
             )
 
 
-if __name__ == "__main__":
+def chunk_data_images_dir():
     print("chunking ../data/images")
 
     data_dir = "../data/images"
@@ -50,6 +47,18 @@ if __name__ == "__main__":
         for filename in os.listdir(os.path.join(data_dir, subdirectory)):
             print(subdirectory + "/" + filename)
             if "hq" in filename:
-                make_chunks("hq", subdirectory)
+                make_chunks(
+                    quality="hq",
+                    input_file_location=os.path.join(data_dir, subdirectory, filename),
+                    output_dir=os.path.join("../data/chunks", subdirectory),
+                )
             if "lq" in filename:
-                make_chunks("lq", subdirectory)
+                make_chunks(
+                    quality="lq",
+                    input_file_location=os.path.join(data_dir, subdirectory, filename),
+                    output_dir=os.path.join("../data/chunks", subdirectory),
+                )
+
+
+if __name__ == "__main__":
+    chunk_data_images_dir()

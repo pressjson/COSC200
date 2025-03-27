@@ -8,8 +8,8 @@ from PIL import Image
 def stitch_images(name, directory, delta=256):
     """stitches an image of the form %name%_%x_offset%_%y_offset%.jpg
     args:
-        name (str): the name of the image to be stitched within the directory
-        directory (path): the directory containing the images to be stitched
+        name: the name of the image to be stitched within the directory
+        directory: the directory containing the images to be stitched
         delta: how big each jump in images is"""
     pattern = r"(\w+)_(\d+)_(\d+)\.jpg"
     x_max = 0
@@ -49,7 +49,10 @@ def stitch_images(name, directory, delta=256):
 
 
 def stitch_image(
-    path, name="hq", name_of_save="stitched.jpg", save_path="../data/stitched"
+    path="../data/chunks",
+    name="hq",
+    name_of_save="stitched.jpg",
+    save_path="../data/stitched",
 ):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
