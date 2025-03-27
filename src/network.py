@@ -72,6 +72,7 @@ def make_model():
     # Initialize the model, loss function, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ImageEnhancementNet().to(device)
+    model = nn.DataParallel(model)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
