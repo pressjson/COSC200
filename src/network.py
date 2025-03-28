@@ -99,7 +99,7 @@ def make_model(num_epochs=10):
     )
 
     dataset = ImageDataset(root_dir="../data/chunks", transform=transform)
-    dataloader = DataLoader(dataset, batch_size=1024, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
     # Initialize the model, loss function, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
