@@ -4,20 +4,22 @@ import network, stitcher, imslp_bootstrap as bootstrap, chunker
 
 from PIL import Image
 from torchvision import transforms
+import torch.nn as nn
 import torch
 import os
 import re
 
 
-def upscale_file(input_file_directory, input_file_name):
+def upscale_file(input_file_directory, input_file_name, model_name="image_enhancement_model.pth"):
 
     # setting everything up
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     model = network.ImageEnhancementNet()
+    model = nn.DataParallel(model)
     model.load_state_dict(
-        torch.load("image_enhancement_model.pth", map_location=device)
+        torch.load(model_name, map_location=device)
     )
     model = model.to(device)
     model.eval()

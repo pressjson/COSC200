@@ -57,8 +57,12 @@ class ImageEnhancementNet(nn.Module):
         return x
 
 
-def make_model():
+def make_model(num_epochs=10):
+
+    print("Training for {num_epochs} epochs")
+
     # Set up dataset and dataloader
+
     transform = transforms.Compose(
         [
             transforms.Resize((256, 256)),
@@ -67,17 +71,16 @@ def make_model():
     )
 
     dataset = ImageDataset(root_dir="../data/chunks", transform=transform)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=1024, shuffle=True)
 
     # Initialize the model, loss function, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = ImageEnhancementNet().to(device)
     model = nn.DataParallel(model)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.003)
 
     # Training loop
-    num_epochs = 10
     for epoch in range(num_epochs):
         print("Epoch " + str(epoch))
         model.train()
@@ -108,8 +111,10 @@ def make_model():
         enhanced_img = transforms.ToPILImage()(enhanced_sample.squeeze().cpu())
 
     # Save the model
-    torch.save(model.state_dict(), "image_enhancement_model.pth")
+    torch.save(model.state_dict(), "{num_epochs}_epochs_model.pth".format(num_epochs=num_epochs))
 
 
 if __name__ == "__main__":
-    make_model()
+    model_ranges = [1, 5, 10, 30, 50, 100, 200, 500]
+    for i in model_ranges:
+        make_model(num_epochs = i)
