@@ -55,7 +55,8 @@ def upscale_file(input_file_directory, input_file_name, model_name="image_enhanc
     # use the model to convert
 
     for subdirectory in os.listdir("../data/test/chunks"):
-        if "upscaled" in subdirectory:
+        # there has to be a better way
+        if not '0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' in subdirectory:
             continue
 
         print("Upscaling page " + subdirectory)

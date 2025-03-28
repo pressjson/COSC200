@@ -43,18 +43,46 @@ class ImageDataset(Dataset):
 
 
 class ImageEnhancementNet(nn.Module):
+    # first model
+
+    # def __init__(self):
+    #     super(ImageEnhancementNet, self).__init__()
+    #     self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
+    #     self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
+    #     self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
+    #     self.relu = nn.ReLU(inplace=True)
+
+    # def forward(self, x):
+    #     x = self.relu(self.conv1(x))
+    #     x = self.relu(self.conv2(x))
+    #     x = self.conv3(x)
+    #     return x
+
+    # second model
     def __init__(self):
-        super(ImageEnhancementNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
-        self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
-        self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
+        super(EnhancedImageNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
         self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.bn4 = nn.BatchNorm2d(128)
+        self.bn5 = nn.BatchNorm2d(64)
 
     def forward(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.conv3(x)
-        return x
+        residual = x
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.relu(self.bn4(self.conv4(x)))
+        x = self.relu(self.bn5(self.conv5(x)))
+        x = self.conv6(x)
+        return x + residual
 
 
 def make_model(num_epochs=10):
@@ -115,6 +143,6 @@ def make_model(num_epochs=10):
 
 
 if __name__ == "__main__":
-    model_ranges = [1, 5, 10, 30, 50, 100, 200, 500]
+    model_ranges = [1, 5, 10, 20, 30, 50, 100, 200, 500]
     for i in model_ranges:
         make_model(num_epochs = i)
