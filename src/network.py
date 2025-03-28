@@ -137,9 +137,7 @@ def train_model(
 
     # AMP Scaler (Use updated torch.amp syntax)
     # Note: device.type works for 'cuda' or 'cpu'. Adjust if using other devices like 'mps'.
-    scaler = torch.amp.GradScaler(
-        device_type=device.type, enabled=(use_amp and device.type == "cuda")
-    )
+    scaler = torch.cuda.amp.GradScaler(enabled=(use_amp and device.type == "cuda"))
     print(
         f"Automatic Mixed Precision (AMP): {'Enabled' if scaler.is_enabled() else 'Disabled'}"
     )
