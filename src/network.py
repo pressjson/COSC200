@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms
 from PIL import Image
-from tqdm import tqdm  # for progress bar
 import time
 import math  # For isnan check
 
