@@ -60,7 +60,7 @@ class ImageEnhancementNet(nn.Module):
 
     # second model
     def __init__(self):
-        super(EnhancedImageNet, self).__init__()
+        super(ImageEnhancementNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
