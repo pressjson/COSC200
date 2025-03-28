@@ -4,3 +4,5 @@ data/**
 .directory
 **/__pycache__/
 **/venv/
+*.log
+*.pdf
