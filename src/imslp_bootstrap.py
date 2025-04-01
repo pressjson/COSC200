@@ -16,10 +16,11 @@ def get_imslp_files() -> None:
 
     """
 
+    print("\n--- Getting files from IMSLP ---")
     url_file = "imslp_urls.txt"
 
-    subprocess.run(["mkdir", "../data"])
-    subprocess.run(["mkdir", "../data/pdf_files"])
+    if not os.path.exists("../data/pdf_files"):
+        os.makedirs("../data/pdf_files")
 
     with open(url_file, "r") as infile:
 
@@ -27,15 +28,23 @@ def get_imslp_files() -> None:
         for url in infile:
             url = url.strip()
             time.sleep(1)  # so IMSLP doesn't get mad
-            command = [
-                "curl",
-                url,
-                "--output",
-                "../data/pdf_files/" + str(i) + ".pdf",
-            ]
-            print(command)
-            subprocess.run(command)
+            print(f"\nDownloading file {i + 1}")
+            try:
+                command = [
+                    "curl",
+                    "-s",
+                    url,
+                    "--output",
+                    "../data/pdf_files/" + str(i) + ".pdf",
+                ]
+                subprocess.run(command)
+            except Exception as e:
+                print(f"\nSomething went wrong with curling {url}")
+                sys.exit(1)
+            # print(command)
             i = i + 1
+
+    print("All files successfully downloaded")
 
 
 def make_images(
@@ -57,15 +66,19 @@ def make_images(
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    command = [
-        "magick",
-        "-density",
-        "300",
-        input_path,
-        os.path.join(output_path, output_name),
-    ]
-    print(command)
-    subprocess.run(command)
+    try:
+        command = [
+            "magick",
+            "-density",
+            "300",
+            input_path,
+            os.path.join(output_path, output_name),
+        ]
+        # print(command)
+        subprocess.run(command)
+    except Exception as e:
+        print(f"\nSomething went wrong with {input_path}")
+        sys.exit(1)
 
 
 def make_image_pairs(cleanup=True) -> None:
@@ -84,6 +97,7 @@ def make_image_pairs(cleanup=True) -> None:
 
     @TODO: clean this up
     """
+    print("\n--- Making image pairs ---")
     i = 0
     path = "../data/pdf_files"
     for pdf_file in os.listdir("../data/pdf_files"):
@@ -94,11 +108,11 @@ def make_image_pairs(cleanup=True) -> None:
 
     i = 0
 
-    for image in os.listdir("../data/images"):
+    for image in sorted(os.listdir("../data/images")):
         if not image.endswith(".jpg"):
             continue
-        path = "../data/images/" + str(i)
-        subprocess.run(["mkdir", path])
+        if not os.exists.path(os.path.join("../data/images", i)):
+            os.makedirs(os.path.join("../data/images", i))
         command = [
             "magick",
             "-quality",
@@ -106,31 +120,31 @@ def make_image_pairs(cleanup=True) -> None:
             "../data/images/" + image,
             path + "/hq.jpg",
         ]
-        print(command)
+        # print(command)
         subprocess.run(command)
 
         command = [
             "magick",
             "../data/images/" + image,
             "-resize",
-            "25%",
+            "12.5%",
             "-quality",
             "15",
             path + "/lq.jpg",
         ]
-        print(command)
+        # print(command)
         subprocess.run(command)
 
         command = [
             "magick",
             path + "/lq.jpg",
             "-resize",
-            "400%",
+            "800%",
             "-quality",
             "100",
             path + "/lq.jpg",
         ]
-        print(command)
+        # print(command)
         subprocess.run(command)
 
         if cleanup:

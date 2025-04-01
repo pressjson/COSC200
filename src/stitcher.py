@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+from .. import settings
+
 import os
 import re
 from PIL import Image
 
 
-def stitch_images(name, directory, delta=256):
+def stitch_images(name, directory, delta=settings.DELTA):
     """stitches an image of the form %name%_%x_offset%_%y_offset%.jpg
     args:
         name: the name of the image to be stitched within the directory
@@ -34,13 +36,9 @@ def stitch_images(name, directory, delta=256):
         y = 0
         while y <= y_max:
             image = Image.open(
-                os.path.join(
-                    directory,
-                    "{img_name}_{x_offset}_{y_offset}.jpg".format(
-                        img_name=name, x_offset=x, y_offset=y
-                    ),
-                )
+                os.path.join(directory, f"{name}_{x}_{y}.jpg"),
             )
+
             result_image.paste(image, (x, y))
             y = y + delta
         x = x + delta

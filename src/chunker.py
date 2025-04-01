@@ -1,5 +1,7 @@
 import os
 
+from .. import settings
+
 from PIL import Image
 
 
@@ -7,8 +9,8 @@ def make_chunks(
     quality="hq",
     input_file_location="../data/images",
     output_dir="../data/chunks",
-    chunk_size=256,
-    delta=256,
+    chunk_size=settings.IMAGE_SIZE[0],
+    delta=settings.DELTA,
 ):
     """makes chunks out of a given image
 
@@ -18,8 +20,6 @@ def make_chunks(
         output_dir: default is "../data/chunks", but can be set if using test data. will make the dir
         chunk_size: the size of the chunks
         delta: the offset for each chunk
-        @TODO: make these set in a settings file/class
-        @TODO: clean this up so it works generally
     """
     image = Image.open(input_file_location)
     width, height = image.size

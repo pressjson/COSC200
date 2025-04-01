@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from .. import settings
 
 import os
 import torch
@@ -62,55 +63,55 @@ class ImageDataset(Dataset):
 class ImageEnhancementNet(nn.Module):
     # first model
 
-    def __init__(self):
-        super(ImageEnhancementNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
-        self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
-        self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.conv3(x)
-        return x
-
-    # second model
     # def __init__(self):
     #     super(ImageEnhancementNet, self).__init__()
-    #     self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
-    #     self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
-    #     self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
-    #     self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-    #     self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-    #     self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
+    #     self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
+    #     self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
+    #     self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
     #     self.relu = nn.ReLU(inplace=True)
-    #     self.bn1 = nn.BatchNorm2d(64)
-    #     self.bn2 = nn.BatchNorm2d(128)
-    #     self.bn3 = nn.BatchNorm2d(256)
-    #     self.bn4 = nn.BatchNorm2d(128)
-    #     self.bn5 = nn.BatchNorm2d(64)
 
     # def forward(self, x):
-    #     residual = x
-    #     x = self.relu(self.bn1(self.conv1(x)))
-    #     x = self.relu(self.bn2(self.conv2(x)))
-    #     x = self.relu(self.bn3(self.conv3(x)))
-    #     x = self.relu(self.bn4(self.conv4(x)))
-    #     x = self.relu(self.bn5(self.conv5(x)))
-    #     x = self.conv6(x)
-    #     return x + residual
-    #
+    #     x = self.relu(self.conv1(x))
+    #     x = self.relu(self.conv2(x))
+    #     x = self.conv3(x)
+    #     return x
+
+    # second model
+    def __init__(self):
+        super(ImageEnhancementNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.bn4 = nn.BatchNorm2d(128)
+        self.bn5 = nn.BatchNorm2d(64)
+
+    def forward(self, x):
+        residual = x
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.relu(self.bn4(self.conv4(x)))
+        x = self.relu(self.bn5(self.conv5(x)))
+        x = self.conv6(x)
+        return x + residual
 
 
-# chatgpt's code
+# google gemini pro 2.5 advanced code
+# edited by me
 
 
 def train_model(
     data_dir="../data/chunks",
-    image_size=(256, 256),
+    image_size=settings.IMAGE_SIZE,
     batch_size=64,
-    num_epochs=501,
+    num_epochs=settings.NUM_EPOCHS,
     learning_rate=0.001,
     lr_step_size=100,
     lr_gamma=0.5,
@@ -136,7 +137,6 @@ def train_model(
     print(f"Using device: {device}")
 
     # AMP Scaler (Use updated torch.amp syntax)
-    # Note: device.type works for 'cuda' or 'cpu'. Adjust if using other devices like 'mps'.
     scaler = torch.cuda.amp.GradScaler(enabled=(use_amp and device.type == "cuda"))
     print(
         f"Automatic Mixed Precision (AMP): {'Enabled' if scaler.is_enabled() else 'Disabled'}"
@@ -150,13 +150,9 @@ def train_model(
         ]
     )
 
-    try:
-        full_dataset = ImageDataset(root_dir=data_dir, transform=transform)
-    except ValueError as e:
-        print(f"Error initializing dataset: {e}")
-        return  # Exit if dataset is invalid
+    full_dataset = ImageDataset(root_dir=data_dir, transform=transform)
 
-    if len(full_dataset) == 0:  # Should be caught by ValueError now, but keep as safety
+    if len(full_dataset) == 0:
         print("Error: Dataset is empty after initialization.")
         return
 
@@ -412,16 +408,16 @@ def train_model(
 
 
 if __name__ == "__main__":
-    # Example usage remains the same, but output will be different (no progress bars)
+    # optimal for 8 A5000 GPUs.
     train_model(
-        data_dir="../data/newchunks",  # Make sure this path is correct
-        num_epochs=500,
+        data_dir="../data/chunks",  # Make sure this path is correct
+        num_epochs=settings.NUM_EPOCHS,
         batch_size=128,
         learning_rate=0.003,
         lr_step_size=50,  # Adjusted step size
         lr_gamma=0.5,
         num_workers=8,  # Adjust based on your CPU cores
-        checkpoint_dir="enhanced_model_checkpoints_no_tqdm",
+        checkpoint_dir="../round_2_checkpoints",
         log_interval=20,  # Log more frequently if desired
         use_data_parallel=True,
         use_amp=True,  # Ensure AMP works correctly with your setup
