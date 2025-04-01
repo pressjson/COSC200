@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
+"""
+this makes all of the images ready to be chunked.
+
+1. download the pdf files from IMSLP
+2. converts the pdf files into JPEG files
+3. converts the JPEG files into high/low quality image pairs
+"""
 
 import os
 import subprocess
 import time
+import sys
 
 
 def get_imslp_files() -> None:
@@ -15,7 +23,7 @@ def get_imslp_files() -> None:
         curl
 
     """
-
+    t = time.time()
     print("\n--- Getting files from IMSLP ---")
     url_file = "imslp_urls.txt"
 
@@ -27,7 +35,6 @@ def get_imslp_files() -> None:
         i = 0
         for url in infile:
             url = url.strip()
-            time.sleep(1)  # so IMSLP doesn't get mad
             print(f"\nDownloading file {i + 1}")
             try:
                 command = [
@@ -38,13 +45,16 @@ def get_imslp_files() -> None:
                     "../data/pdf_files/" + str(i) + ".pdf",
                 ]
                 subprocess.run(command)
-            except Exception as e:
+            except Exception:
                 print(f"\nSomething went wrong with curling {url}")
                 sys.exit(1)
             # print(command)
             i = i + 1
+            print("Sleeping")
+            time.sleep(2)  # so IMSLP doesn't get mad, adjust as needed
 
-    print("All files successfully downloaded")
+    print("-" * 50)
+    print(f"All files successfully downloaded in {time.time() - t:.2f}s.")
 
 
 def make_images(
@@ -74,14 +84,15 @@ def make_images(
             input_path,
             os.path.join(output_path, output_name),
         ]
+        print(f"\nMaking image {output_name} at {output_path}")
         # print(command)
         subprocess.run(command)
-    except Exception as e:
+    except Exception:
         print(f"\nSomething went wrong with {input_path}")
         sys.exit(1)
 
 
-def make_image_pairs(cleanup=True) -> None:
+def make_jpegs():
     """
     converts the jpgs in ../data/images into high quality/low quality image pairs in ../data/images/i
 
@@ -97,57 +108,99 @@ def make_image_pairs(cleanup=True) -> None:
 
     @TODO: clean this up
     """
-    print("\n--- Making image pairs ---")
+    t = time.time()
+
+    print("\n--- Making JPEGs out of the PDFs ---")
     i = 0
     path = "../data/pdf_files"
-    for pdf_file in os.listdir("../data/pdf_files"):
+    for pdf_file in sorted(os.listdir("../data/pdf_files")):
         make_images(
             input_path=os.path.join(path, pdf_file), output_name=str(i) + ".jpg"
         )
         i = i + 1
+    print("-" * 50)
+    print(f"\nAll PDF files converted to JPEGs in {time.time() - t:.2f}s.")
 
+
+def make_image_pairs(cleanup=True):
+    """
+    makes high and low quality image pairs out of the jpegs created by make_jpegs()
+    """
+
+    t = time.time()
+
+    print("\n--- Making image pairs ---\n")
     i = 0
 
-    for image in sorted(os.listdir("../data/images")):
+    for image in os.listdir("../data/images"):
         if not image.endswith(".jpg"):
             continue
-        if not os.exists.path(os.path.join("../data/images", i)):
-            os.makedirs(os.path.join("../data/images", i))
-        command = [
-            "magick",
-            "-quality",
-            "100",
-            "../data/images/" + image,
-            path + "/hq.jpg",
-        ]
-        # print(command)
-        subprocess.run(command)
+        if not os.path.exists(os.path.join("../data/images", str(i))):
+            os.makedirs(os.path.join("../data/images", str(i)))
+        print(f"\nMaking high quality images at ../data/images/{i}/hq.jpg")
+        try:
+            output_path = os.path.join("../data/images", str(i))
+            command = [
+                "magick",
+                "-quality",
+                "100",
+                "../data/images/" + image,
+                os.path.join(output_path, "hq.jpg"),
+            ]
+            # print(command)
+            subprocess.run(command)
 
-        command = [
-            "magick",
-            "../data/images/" + image,
-            "-resize",
-            "12.5%",
-            "-quality",
-            "15",
-            path + "/lq.jpg",
-        ]
-        # print(command)
-        subprocess.run(command)
+            print(f"Making low quality images at ../data/images/{i}/lq.jpg")
+            command = [
+                "magick",
+                "../data/images/" + image,
+                "-resize",
+                "12.5%",
+                "-quality",
+                "15",
+                os.path.join(output_path, "lq.jpg"),
+            ]
+            # print(command)
+            subprocess.run(command)
 
-        command = [
-            "magick",
-            path + "/lq.jpg",
-            "-resize",
-            "800%",
-            "-quality",
-            "100",
-            path + "/lq.jpg",
-        ]
-        # print(command)
-        subprocess.run(command)
-
-        if cleanup:
-            subprocess.run(["rm", "../data/images/" + image])
-
+            command = [
+                "magick",
+                output_path + "/lq.jpg",
+                "-resize",
+                "800%",
+                "-quality",
+                "100",
+                os.path.join(output_path, "lq.jpg"),
+            ]
+            # print(command)
+            subprocess.run(command)
+        except subprocess.CalledProcessError as grepexc:
+            print("Error", grepexc.returncode, grepexc.output)
+            print("Something went wrong with ImageMagick, stopping...")
+            sys.exit(1)
         i = i + 1
+
+    if cleanup:
+        print(f"Cleaning up {image}")
+        subprocess.run(["rm", "../data/images/" + image])
+
+    print("-" * 50)
+    print(f"\nMade all pairs in {time.time() - t:.2f}s.")
+
+
+if __name__ == "__main__":
+    try:
+        subprocess.check_output(["magick --help"])
+    except subprocess.CalledProcessError as grepexc:
+        print("Error", grepexc.returncode, grepexc.output)
+        print("Try installing ImageMagick?")
+
+    try:
+        subprocess.check_output(["curl --help"])
+    except subprocess.CalledProcessError as grepexc:
+        print("Error", grepexc.returncode, grepexc.output)
+        print("You really don't have curl?")
+
+    get_imslp_files()
+    make_jpegs()
+    make_image_pairs()
