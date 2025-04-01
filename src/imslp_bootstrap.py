@@ -35,7 +35,7 @@ def get_imslp_files() -> None:
         i = 0
         for url in infile:
             url = url.strip()
-            print(f"\nDownloading file {i + 1}")
+            print(f"\nDownloading file {i + 1}: {url}")
             try:
                 command = [
                     "curl",
@@ -86,7 +86,7 @@ def make_images(
         ]
         print(f"\nMaking image {output_name} at {output_path}")
         # print(command)
-        subprocess.run(command)
+        subprocess.check_output(command)
     except Exception:
         print(f"\nSomething went wrong with {input_path}")
         sys.exit(1)
@@ -190,13 +190,13 @@ def make_image_pairs(cleanup=True):
 
 if __name__ == "__main__":
     try:
-        subprocess.check_output(["magick --help"])
+        subprocess.check_output(["magick", "--help"])
     except subprocess.CalledProcessError as grepexc:
         print("Error", grepexc.returncode, grepexc.output)
         print("Try installing ImageMagick?")
 
     try:
-        subprocess.check_output(["curl --help"])
+        subprocess.check_output(["curl", "--help"])
     except subprocess.CalledProcessError as grepexc:
         print("Error", grepexc.returncode, grepexc.output)
         print("You really don't have curl?")

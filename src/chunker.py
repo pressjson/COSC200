@@ -1,6 +1,6 @@
 import os
 
-from .. import settings
+import settings
 
 from PIL import Image
 
@@ -39,13 +39,16 @@ def make_chunks(
 
 
 def chunk_data_images_dir():
-    print("chunking ../data/images")
+    print("\n--- Chunking ../data/images ---")
 
     data_dir = "../data/images"
 
     for subdirectory in os.listdir(data_dir):
-        for filename in os.listdir(os.path.join(data_dir, subdirectory)):
-            print(subdirectory + "/" + filename)
+        base_path = os.path.join(data_dir, subdirectory)
+        if not os.path.isdir(base_path):
+            continue
+        for filename in os.listdir(base_path):
+            print(f"Chunking {base_path}/{filename}")
             if "hq" in filename:
                 make_chunks(
                     quality="hq",

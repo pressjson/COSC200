@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from .. import settings
+import settings
 
 import os
 import torch

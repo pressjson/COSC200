@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import network, stitcher, imslp_bootstrap as bootstrap, chunker
-from .. import settings
+import settings
 
 from PIL import Image
 from torchvision import transforms
