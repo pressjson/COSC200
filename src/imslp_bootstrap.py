@@ -51,7 +51,7 @@ def get_imslp_files() -> None:
             # print(command)
             i = i + 1
             print("Sleeping")
-            time.sleep(2)  # so IMSLP doesn't get mad, adjust as needed
+            time.sleep(3)  # so IMSLP doesn't get mad, adjust as needed
 
     print("-" * 50)
     print(f"All files successfully downloaded in {time.time() - t:.2f}s.")
@@ -84,7 +84,7 @@ def make_images(
             input_path,
             os.path.join(output_path, output_name),
         ]
-        print(f"\nMaking image {output_name} at {output_path}")
+        print(f"Making image {output_name} at {output_path}")
         # print(command)
         subprocess.check_output(command)
     except Exception:
@@ -114,6 +114,10 @@ def make_jpegs():
     i = 0
     path = "../data/pdf_files"
     for pdf_file in sorted(os.listdir("../data/pdf_files")):
+        file_size = os.path.get_size(os.path.join(path, pdf_file))
+        if file_size < 2000:
+            print(f"Warning: file {pdf_file} is probably not a valid file. Skipping...")
+            continue
         make_images(
             input_path=os.path.join(path, pdf_file), output_name=str(i) + ".jpg"
         )
@@ -155,7 +159,7 @@ def make_image_pairs(cleanup=True):
                 "magick",
                 "../data/images/" + image,
                 "-resize",
-                "12.5%",
+                "25%",
                 "-quality",
                 "15",
                 os.path.join(output_path, "lq.jpg"),
@@ -167,7 +171,7 @@ def make_image_pairs(cleanup=True):
                 "magick",
                 output_path + "/lq.jpg",
                 "-resize",
-                "800%",
+                "400%",
                 "-quality",
                 "100",
                 os.path.join(output_path, "lq.jpg"),
@@ -189,6 +193,7 @@ def make_image_pairs(cleanup=True):
 
 
 if __name__ == "__main__":
+    t = time.time()
     try:
         subprocess.check_output(["magick", "--help"])
     except subprocess.CalledProcessError as grepexc:
@@ -204,3 +209,8 @@ if __name__ == "__main__":
     get_imslp_files()
     make_jpegs()
     make_image_pairs()
+    print("-" * 50)
+    print(
+        f"\nAll bootstrapping completed in {time.time() - t:.2f}s. Now, use the chunker."
+    )
+    print("-" * 50)

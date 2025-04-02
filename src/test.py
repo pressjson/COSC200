@@ -10,17 +10,23 @@ import torch
 import os
 import re
 import sys  # For exiting on error
+import shutil
 
 
 def upscale_file(
     input_file_directory,
     input_file_name,
     model_name="enhanced_model_checkpoints_no_tqdm/checkpoint_best.pth",
+    multiple_gpus=False,
 ):  # Example using a checkpoint
 
     # --- Define Key Paths (Relative to script location as per original) ---
     data_base_dir = "../data"
     test_dir = os.path.join(data_base_dir, "test")
+    if os.path.exists(test_dir):
+        print(f"Test directory {test_dir} exists, recreating new test directory")
+        shutil.rmtree(test_dir)
+        os.makedirs(test_dir)
     test_images_dir = os.path.join(test_dir, "images")
     test_chunks_dir = os.path.join(test_dir, "chunks")
     test_upscaled_dir = os.path.join(
@@ -82,13 +88,21 @@ def upscale_file(
     model = model.to(device)
 
     # 5. Wrap with DataParallel *after* loading state dict if using multiple GPUs
-    if device.type == "cuda" and torch.cuda.device_count() > 1:
-        print(f"Wrapping model with DataParallel for {torch.cuda.device_count()} GPUs.")
-        model = nn.DataParallel(model)
-    elif device.type == "cuda":
-        print("Running on single GPU.")
+    if multiple_gpus:
+        if device.type == "cuda" and torch.cuda.device_count() > 1:
+            print(
+                f"Wrapping model with DataParallel for {torch.cuda.device_count()} GPUs."
+            )
+            model = nn.DataParallel(model)
+        elif device.type == "cuda":
+            print("Running on single GPU.")
+        else:
+            print("Running on CPU.")
     else:
-        print("Running on CPU.")
+        if device.type == "cuda":
+            print("Running on single GPU.")
+        else:
+            print("Running on CPU.")
 
     # 6. Set model to evaluation mode
     model.eval()
@@ -106,7 +120,7 @@ def upscale_file(
     )
 
     # --- Step 1: Make images out of the PDF ---
-    print(f"\n--- Converting PDF to images ---")
+    print("\n--- Converting PDF to images ---")
     print(f"Input PDF: {input_pdf_path}")
     print(f"Output directory: {test_images_dir}")
     os.makedirs(test_images_dir, exist_ok=True)  # Ensure output dir exists
@@ -130,7 +144,7 @@ def upscale_file(
     print(f"Found {len(image_files)} images from PDF.")
 
     # --- Step 2: Make chunks to pass to the model ---
-    print(f"\n--- Creating image chunks ---")
+    print("\n--- Creating image chunks ---")
     print(f"Chunk output base directory: {test_chunks_dir}")
     os.makedirs(test_chunks_dir, exist_ok=True)  # Ensure base chunk dir exists
 
@@ -162,7 +176,7 @@ def upscale_file(
     print("Chunk creation complete.")
 
     # --- Step 3: Use the model to upscale chunks ---
-    print(f"\n--- Upscaling image chunks ---")
+    print("\n--- Upscaling image chunks ---")
     os.makedirs(test_upscaled_dir, exist_ok=True)  # Ensure base upscaled dir exists
 
     processed_page_dirs = sorted(
@@ -256,7 +270,7 @@ def upscale_file(
     print("Chunk upscaling complete.")
 
     # --- Step 4: Stitch upscaled chunks back together ---
-    print(f"\n--- Stitching upscaled chunks ---")
+    print("\n--- Stitching upscaled chunks ---")
     os.makedirs(test_stitched_dir, exist_ok=True)  # Ensure final output dir exists
 
     upscaled_page_dirs = sorted(
