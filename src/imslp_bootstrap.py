@@ -51,7 +51,7 @@ def get_imslp_files() -> None:
             # print(command)
             i = i + 1
             print("Sleeping")
-            time.sleep(3)  # so IMSLP doesn't get mad, adjust as needed
+            time.sleep(5)  # so IMSLP doesn't get mad, adjust as needed
 
     print("-" * 50)
     print(f"All files successfully downloaded in {time.time() - t:.2f}s.")

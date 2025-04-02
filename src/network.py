@@ -6,13 +6,171 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch.nn as nn
+import torch.nn.functional as F  # Needed for GELU in TransformerEncoderLayer
 import torch.optim as optim
 from torchvision import transforms
 from PIL import Image
 import time
 import math  # For isnan check
 
-# thanks perplexity (;
+# thanks gemini 2.5 pro ;)
+
+
+class PatchEmbed(nn.Module):
+    """Image to Patch Embedding"""
+
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+        super().__init__()
+        self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
+        self.patch_size = (
+            (patch_size, patch_size) if isinstance(patch_size, int) else patch_size
+        )
+        # Calculate grid size based on potentially tuple input for img_size/patch_size
+        self.grid_size = (
+            self.img_size[0] // self.patch_size[0],
+            self.img_size[1] // self.patch_size[1],
+        )
+        self.num_patches = self.grid_size[0] * self.grid_size[1]
+
+        self.proj = nn.Conv2d(
+            in_chans, embed_dim, kernel_size=self.patch_size, stride=self.patch_size
+        )
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        # Dynamic grid size calculation based on input H, W
+        # This allows flexibility if input size doesn't strictly match configured img_size
+        # although transforms.Resize should handle this beforehand in this script.
+        # H_patch, W_patch = H // self.patch_size[0], W // self.patch_size[1]
+
+        x = self.proj(x)  # B x E x H/P x W/P
+        x = x.flatten(2)  # B x E x N
+        x = x.transpose(1, 2)  # B x N x E
+        return x
+
+
+class TransformerImageEnhancer(nn.Module):
+    def __init__(
+        self,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+    ):
+        super().__init__()
+        self.patch_size = (
+            patch_size if isinstance(patch_size, int) else patch_size[0]
+        )  # Store as int for calculations
+        self.embed_dim = embed_dim
+        self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
+        # Ensure patch_size is treated as tuple internally if needed by PatchEmbed
+        _patch_size_tuple = (
+            (patch_size, patch_size) if isinstance(patch_size, int) else patch_size
+        )
+
+        self.patch_embed = PatchEmbed(
+            img_size=self.img_size,
+            patch_size=_patch_size_tuple,
+            in_chans=in_chans,
+            embed_dim=embed_dim,
+        )
+        self.num_patches = (
+            self.patch_embed.num_patches
+        )  # Get num_patches from PatchEmbed instance
+
+        self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
+        self.pos_drop = nn.Dropout(p=drop_rate)
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim,
+            nhead=num_heads,
+            dim_feedforward=int(embed_dim * mlp_ratio),
+            dropout=drop_rate,
+            activation=F.gelu,  # Use F.gelu or string 'gelu' depending on PyTorch version
+            attn_dropout=attn_drop_rate,  # May not exist in older PyTorch; handle if error
+            batch_first=True,
+        )
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer=encoder_layer, num_layers=depth, norm=nn.LayerNorm(embed_dim)
+        )
+
+        # Reconstruction Head using ConvTranspose2d
+        self.head = nn.ConvTranspose2d(
+            embed_dim,
+            in_chans,
+            kernel_size=_patch_size_tuple,  # Use tuple form here
+            stride=_patch_size_tuple,
+        )
+
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+        elif isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+            nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+        residual = x
+
+        # --- Patch Embed ---
+        x = self.patch_embed(x)  # B x N x E
+        current_num_patches = x.shape[1]
+
+        # --- Positional Encoding ---
+        # Simple check; more robust interpolation needed for truly variable input sizes
+        # But Resize transform should make input size consistent here.
+        if current_num_patches != self.num_patches:
+            print(
+                f"Warning: Input patch count ({current_num_patches}) doesn't match configured ({self.num_patches}). Positional embedding might mismatch."
+            )
+            # Add interpolation logic here if needed, otherwise use the configured pos_embed and hope broadcasting works or error occurs
+        pos_embed_to_add = self.pos_embed  # Use the learned fixed-size pos_embed
+
+        x = x + pos_embed_to_add
+        x = self.pos_drop(x)
+
+        # --- Transformer ---
+        x = self.transformer_encoder(x)  # B x N x E
+
+        # --- Reconstruction ---
+        # Calculate grid size based on actual input H, W used by PatchEmbed
+        # This ensures reshaping works even if input H/W slightly differ (e.g. due to rounding)
+        # though Resize should make them match img_size
+        H_patch_grid = H // self.patch_size
+        W_patch_grid = W // self.patch_size
+        # print(f"Debug: H={H}, W={W}, patch_size={self.patch_size}, Grid={H_patch_grid}x{W_patch_grid}, N={current_num_patches}, E={self.embed_dim}")
+
+        x = x.transpose(1, 2)  # B x E x N
+        # Reshape carefully using calculated grid size
+        try:
+            x = x.reshape(
+                B, self.embed_dim, H_patch_grid, W_patch_grid
+            )  # B x E x H/P x W/P
+        except RuntimeError as e:
+            print(
+                f"Error during reshape: B={B}, E={self.embed_dim}, H/P={H_patch_grid}, W/P={W_patch_grid}, Expected N={H_patch_grid*W_patch_grid}, Got N={x.shape[2]}"
+            )
+            raise e
+
+        x = self.head(x)  # B x C x H x W
+
+        # --- Residual ---
+        return x + residual
 
 
 class ImageDataset(Dataset):
@@ -60,47 +218,47 @@ class ImageDataset(Dataset):
         return lq_image, hq_image
 
 
-class ImageEnhancementNet(nn.Module):
-    # first model
+# class ImageEnhancementNet(nn.Module):
+#     # first model
 
-    # def __init__(self):
-    #     super(ImageEnhancementNet, self).__init__()
-    #     self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
-    #     self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
-    #     self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
-    #     self.relu = nn.ReLU(inplace=True)
+#     # def __init__(self):
+#     #     super(ImageEnhancementNet, self).__init__()
+#     #     self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
+#     #     self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
+#     #     self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
+#     #     self.relu = nn.ReLU(inplace=True)
 
-    # def forward(self, x):
-    #     x = self.relu(self.conv1(x))
-    #     x = self.relu(self.conv2(x))
-    #     x = self.conv3(x)
-    #     return x
+#     # def forward(self, x):
+#     #     x = self.relu(self.conv1(x))
+#     #     x = self.relu(self.conv2(x))
+#     #     x = self.conv3(x)
+#     #     return x
 
-    # second model
-    def __init__(self):
-        super(ImageEnhancementNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
-        self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-        self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.bn4 = nn.BatchNorm2d(128)
-        self.bn5 = nn.BatchNorm2d(64)
+#     # second model
+#     def __init__(self):
+#         super(ImageEnhancementNet, self).__init__()
+#         self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
+#         self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
+#         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+#         self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+#         self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+#         self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.bn1 = nn.BatchNorm2d(64)
+#         self.bn2 = nn.BatchNorm2d(128)
+#         self.bn3 = nn.BatchNorm2d(256)
+#         self.bn4 = nn.BatchNorm2d(128)
+#         self.bn5 = nn.BatchNorm2d(64)
 
-    def forward(self, x):
-        residual = x
-        x = self.relu(self.bn1(self.conv1(x)))
-        x = self.relu(self.bn2(self.conv2(x)))
-        x = self.relu(self.bn3(self.conv3(x)))
-        x = self.relu(self.bn4(self.conv4(x)))
-        x = self.relu(self.bn5(self.conv5(x)))
-        x = self.conv6(x)
-        return x + residual
+#     def forward(self, x):
+#         residual = x
+#         x = self.relu(self.bn1(self.conv1(x)))
+#         x = self.relu(self.bn2(self.conv2(x)))
+#         x = self.relu(self.bn3(self.conv3(x)))
+#         x = self.relu(self.bn4(self.conv4(x)))
+#         x = self.relu(self.bn5(self.conv5(x)))
+#         x = self.conv6(x)
+#         return x + residual
 
 
 # google gemini pro 2.5 advanced code
@@ -110,6 +268,12 @@ class ImageEnhancementNet(nn.Module):
 def train_model(
     data_dir="../data/chunks",
     image_size=settings.IMAGE_SIZE,
+    patch_size=16,
+    embed_dim=512,
+    depth=6,
+    num_heads=8,
+    mlp_ratio=4.0,
+    dropout_rate=0.1,
     batch_size=64,
     num_epochs=settings.NUM_EPOCHS,
     learning_rate=0.001,
@@ -141,6 +305,18 @@ def train_model(
     print(
         f"Automatic Mixed Precision (AMP): {'Enabled' if scaler.is_enabled() else 'Disabled'}"
     )
+
+    # --- Crucial Check: Image Size vs Patch Size ---
+    img_h, img_w = (
+        (image_size, image_size) if isinstance(image_size, int) else image_size
+    )
+    patch_h, patch_w = (
+        (patch_size, patch_size) if isinstance(patch_size, int) else patch_size
+    )
+    if img_h % patch_h != 0 or img_w % patch_w != 0:
+        raise ValueError(
+            f"Image dimensions ({img_h}x{img_w}) must be divisible by patch dimensions ({patch_h}x{patch_w})"
+        )
 
     # --- Dataset and Dataloaders ---
     transform = transforms.Compose(
@@ -201,7 +377,28 @@ def train_model(
         total_val_batches = len(val_loader)
 
     # --- Model, Loss, Optimizer, Scheduler ---
-    model = ImageEnhancementNet().to(device)
+    # model = ImageEnhancementNet().to(device)
+
+    # **** Instantiate the Transformer Model ****
+    model = TransformerImageEnhancer(
+        img_size=image_size,
+        patch_size=patch_size,
+        in_chans=3,
+        embed_dim=embed_dim,
+        depth=depth,
+        num_heads=num_heads,
+        mlp_ratio=mlp_ratio,
+        drop_rate=dropout_rate,
+        attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
+    ).to(device)
+    print("Initialized TransformerImageEnhancer with:")
+    print(f"  img_size={image_size}, patch_size={patch_size}, embed_dim={embed_dim}")
+    print(
+        f"  depth={depth}, num_heads={num_heads}, mlp_ratio={mlp_ratio:.1f}, dropout={dropout_rate:.2f}"
+    )
+    # Count parameters (useful for comparison/resource estimation)
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"  Trainable Parameters: {num_params / 1e6:.2f} M")
 
     # Handle DataParallel or single GPU
     model_to_save = model  # Keep ref to original model for saving state_dict
@@ -235,7 +432,6 @@ def train_model(
         epoch_start_time = time.time()
         model.train()
         running_loss = 0.0
-        # Removed tqdm wrapper
 
         print(
             f"\n--- Epoch {epoch}/{num_epochs} [Train] ---"
@@ -408,18 +604,38 @@ def train_model(
 
 
 if __name__ == "__main__":
-    # optimal for 8 A5000 GPUs.
+    # --- ADJUST THESE PARAMETERS FOR THE TRANSFORMER ---
+    transformer_patch_size = (
+        16  # e.g., 8, 16, 32 (ensure settings.IMAGE_SIZE is divisible by this)
+    )
+    transformer_embed_dim = 512  # e.g., 384, 512, 768
+    transformer_depth = 6  # e.g., 4, 6, 8, 12
+    transformer_num_heads = 8  # e.g., 6, 8, 12 (must divide embed_dim)
+    transformer_mlp_ratio = 4.0
+    transformer_dropout = 0.1
+
+    # --- ADJUST BATCH SIZE BASED ON GPU MEMORY ---
+    # Start lower than the CNN, e.g., 32 or 64, and increase if possible
+    train_batch_size = 32  # <<<< ADJUST THIS FIRST if you get CUDA Out of Memory errors
+
     train_model(
-        data_dir="../data/chunks",  # Make sure this path is correct
-        num_epochs=settings.NUM_EPOCHS,
-        batch_size=128,
-        learning_rate=0.003,
-        lr_step_size=50,  # Adjusted step size
+        data_dir="../data/chunks",
+        image_size=settings.IMAGE_SIZE,  # From settings file
+        patch_size=transformer_patch_size,
+        embed_dim=transformer_embed_dim,
+        depth=transformer_depth,
+        num_heads=transformer_num_heads,
+        mlp_ratio=transformer_mlp_ratio,
+        dropout_rate=transformer_dropout,
+        num_epochs=settings.NUM_EPOCHS,  # From settings file
+        batch_size=train_batch_size,  # Use adjusted batch size
+        learning_rate=0.001,  # Start with 0.001 or 0.0005, might need tuning
+        lr_step_size=50,
         lr_gamma=0.5,
-        num_workers=8,  # Adjust based on your CPU cores
-        checkpoint_dir="../round_2_checkpoints",
-        log_interval=20,  # Log more frequently if desired
+        num_workers=8,
+        checkpoint_dir="../transformer_checkpoints",  # Use a different dir maybe
+        log_interval=20,
         use_data_parallel=True,
-        use_amp=True,  # Ensure AMP works correctly with your setup
-        save_interval=25,  # Adjusted save interval
+        use_amp=True,  # AMP is highly recommended for Transformers
+        save_interval=25,
     )
