@@ -10,6 +10,8 @@ import torch.nn.functional as F  # Needed for GELU in TransformerEncoderLayer
 import torch.optim as optim
 from torchvision import transforms
 from PIL import Image
+import numpy as np
+import cv2
 import time
 import math  # For isnan check
 
@@ -458,7 +460,9 @@ def train_model(
         batch_start_time = time.time()  # For estimating time per batch/log interval
 
         for i, (inputs, targets) in enumerate(train_loader):
-            inputs, targets = inputs.to(device), targets.to(device)
+            inputs, targets = (inputs + torch.randn_like(inputs) * 0.2).to(
+                device
+            ), targets.to(device)
 
             optimizer.zero_grad(
                 set_to_none=True
@@ -654,7 +658,7 @@ if __name__ == "__main__":
         num_workers=8,
         checkpoint_dir="../transformer_checkpoints",  # Use a different dir maybe
         log_interval=20,
-        use_data_parallel=True,
+        use_data_parallel=False,
         use_amp=True,  # AMP is highly recommended for Transformers
         save_interval=25,
         load_checkpoint=False,
