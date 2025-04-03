@@ -382,6 +382,21 @@ def train_model(
 
     # --- Model, Loss, Optimizer, Scheduler ---
     # model = ImageEnhancementNet().to(device)
+    best_val_loss = float("inf")
+    start_epoch = 1
+
+    # load a previous state dict
+    if load_checkpoint == True:
+        print("Loading checkpoint")
+        checkpoint = torch.load(load_checkpoint_location)
+        state_dict = checkpoint["model_state_dict"]
+        if any(key.startswith("module.") for key in state_dict.keys()):
+            state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+        model.load_state_dict(state_dict)
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict("scheduler_state_dict")
+        start_epoch = checkpoint["epoch"]
+        print("Checkpoint loaded")
 
     # **** Instantiate the Transformer Model ****
     model = TransformerImageEnhancer(
@@ -423,22 +438,6 @@ def train_model(
     scheduler = optim.lr_scheduler.StepLR(
         optimizer, step_size=lr_step_size, gamma=lr_gamma
     )
-
-    best_val_loss = float("inf")
-    start_epoch = 1
-
-    # load a previous state dict
-    if load_checkpoint == True:
-        print("Loading checkpoint")
-        checkpoint = torch.load(load_checkpoint_location)
-        state_dict = checkpoint["model_state_dict"]
-        if any(key.startswith("module.") for key in state_dict.keys()):
-            state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-        model.load_state_dict(state_dict)
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        scheduler.load_state_dict("scheduler_state_dict")
-        start_epoch = checkpoint["epoch"]
-        print("Checkpoint loaded")
 
     # --- Training Loop ---
 
