@@ -385,6 +385,24 @@ def train_model(
     best_val_loss = float("inf")
     start_epoch = 1
 
+    model = TransformerImageEnhancer(
+        img_size=image_size,
+        patch_size=patch_size,
+        in_chans=settings.IN_CHANS,
+        embed_dim=embed_dim,
+        depth=depth,
+        num_heads=num_heads,
+        mlp_ratio=mlp_ratio,
+        drop_rate=dropout_rate,
+        attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
+    )
+
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.StepLR(
+        optimizer, step_size=lr_step_size, gamma=lr_gamma
+    )
+
     # load a previous state dict
     if load_checkpoint == True:
         print("Loading checkpoint")
@@ -399,17 +417,7 @@ def train_model(
         print("Checkpoint loaded")
 
     # **** Instantiate the Transformer Model ****
-    model = TransformerImageEnhancer(
-        img_size=image_size,
-        patch_size=patch_size,
-        in_chans=settings.IN_CHANS,
-        embed_dim=embed_dim,
-        depth=depth,
-        num_heads=num_heads,
-        mlp_ratio=mlp_ratio,
-        drop_rate=dropout_rate,
-        attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
-    ).to(device)
+    model = model.to(device)
     print("Initialized TransformerImageEnhancer with:")
     print(f"  img_size={image_size}, patch_size={patch_size}, embed_dim={embed_dim}")
     print(
@@ -432,12 +440,6 @@ def train_model(
     elif device.type == "cpu":
         use_data_parallel = False  # Cannot use DataParallel on CPU
         print("Running on CPU.")
-
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.StepLR(
-        optimizer, step_size=lr_step_size, gamma=lr_gamma
-    )
 
     # --- Training Loop ---
 
