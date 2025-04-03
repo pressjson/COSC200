@@ -19,7 +19,12 @@ def upscale_file(
     model_file_name="enhanced_model_checkpoints_no_tqdm/checkpoint_best.pth",
     multiple_gpus=False,
     model_type="simple",  # either "simple", "complex", or "transformer"
-):  # Example using a checkpoint
+):
+    """
+    upscales a file given its parent directory, name, the path to the model, and some other information
+
+    @TODO: make the image crop back to its original size after upscaling
+    """
 
     # --- Define Key Paths (Relative to script location as per original) ---
     data_base_dir = "../data"
@@ -333,7 +338,7 @@ if __name__ == "__main__":
     # Make sure these paths are correct relative to where you run the script
     pdf_directory = "../"  # Example directory containing PDF
     pdf_filename = "moonlight_sonata.pdf"  # Example PDF name
-    model_checkpoint = "../checkpoint_best.pth"  # Path to your best model
+    model_name = "../checkpoint_best.pth"  # Path to your best model
 
     # Create dummy input if it doesn't exist for testing
     if not os.path.exists(os.path.join(pdf_directory, pdf_filename)):
@@ -342,4 +347,4 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    upscale_file(pdf_directory, pdf_filename, model_checkpoint)  #!/usr/bin/env python3
+    upscale_file(pdf_directory, pdf_filename, model_name)  #!/usr/bin/env python3

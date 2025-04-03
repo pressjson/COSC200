@@ -19,14 +19,9 @@ Set up the venv with ~source venv/bin/activate~ or however you activate with you
 
 * What is left to do?
 
-1. Add a bunch of IMSLP scores to ~imslp_urls.txt~
-   - Note: the URL should be to the actual pdf file, ending in ~.pdf~.
-2. Make my code not a jumbled spaghetti mess of garbage that works on a prayer
-3. Write the neural network (done. thanks perplexity ;)
-4. Make the stitcher
-5. Generalize the code, so the very specific functions like [[file:src/chunker.py][chunker.py]] work in the more generalized circumstances that they need to work in
-   - Chiefly, just change the path to chunk to, not just ~data/images/chunks~
-6. Make a ~requirements.txt~ with pip so dependencies can be ~pip install -r requirements.txt~'d
-7. Hope it's better than traditional general-purpose upscaling techniques in some manner
-8. Write a paper
-9. Profit
+1. Make my code not a jumbled spaghetti mess of garbage that works on a prayer
+2. Have ~test.py~ put the images back in their pdf order, and combine them back into a pdf
+3. Have ~test.py~ crop the images back to their original size after they get chunked
+4. Hope it's better than traditional general-purpose upscaling techniques in some manner
+5. Write a paper
+6. Profit
