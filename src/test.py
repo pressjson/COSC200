@@ -16,8 +16,9 @@ import shutil
 def upscale_file(
     input_file_directory,
     input_file_name,
-    model_name="enhanced_model_checkpoints_no_tqdm/checkpoint_best.pth",
+    model_file_name="enhanced_model_checkpoints_no_tqdm/checkpoint_best.pth",
     multiple_gpus=False,
+    model_type="simple",  # either "simple", "complex", or "transformer"
 ):  # Example using a checkpoint
 
     # --- Define Key Paths (Relative to script location as per original) ---
@@ -40,8 +41,8 @@ def upscale_file(
     if not os.path.isfile(input_pdf_path):
         print(f"Error: Input PDF not found at {input_pdf_path}")
         sys.exit(1)
-    if not os.path.isfile(model_name):
-        print(f"Error: Model checkpoint not found at {model_name}")
+    if not os.path.isfile(model_file_name):
+        print(f"Error: Model checkpoint not found at {model_file_name}")
         sys.exit(1)
 
     # --- Setup Device ---
@@ -49,13 +50,31 @@ def upscale_file(
     print(f"Using device: {device}")
 
     # --- Load Model Correctly ---
-    print(f"Loading model state dict from: {model_name}")
+    print(f"Loading model state dict from: {model_file_name}")
     # 1. Instantiate the base model
-    model = network.ImageEnhancementNet()
+    if model_type == "simple":
+        model = network.ImageEnhancementNet()
+    elif model_type == "complex":
+        model = network.ImageComplicatedNet()
+    elif model_type == "transformer":
+        model == network.TransformerImageEnhancer(
+            img_size=settings.IMAGE_SIZE,
+            patch_size=settings.PATCH_SIZE,
+            in_chans=settings.IN_CHANS,
+            embed_dim=settings.EMBED_DIM,
+            depth=settings.DEPTH,
+            num_heads=settings.NUM_HEADS,
+            mlp_ratio=settings.MLP_RATIO,
+        )
+    else:
+        print(
+            f'Error: model type is {model_type}. Expected "simple", "complex", or "transformer"'
+        )
+        sys.exit(1)
 
     # 2. Load the state dictionary (assuming train_model saved the underlying model's state)
     #    Load to CPU first to avoid potential GPU mismatch issues during loading
-    checkpoint = torch.load(model_name, map_location=torch.device("cpu"))
+    checkpoint = torch.load(model_file_name, map_location=torch.device("cpu"))
 
     #    Extract the model state dict (handle checkpoints saved by the improved train_model)
     if "model_state_dict" in checkpoint:

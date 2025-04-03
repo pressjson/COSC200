@@ -93,7 +93,7 @@ class TransformerImageEnhancer(nn.Module):
             dim_feedforward=int(embed_dim * mlp_ratio),
             dropout=drop_rate,
             activation=F.gelu,  # Use F.gelu or string 'gelu' depending on PyTorch version
-            attn_dropout=attn_drop_rate,  # May not exist in older PyTorch; handle if error
+            # attn_dropout=attn_drop_rate,  # May not exist in older PyTorch; handle if error
             batch_first=True,
         )
         self.transformer_encoder = nn.TransformerEncoder(
@@ -218,47 +218,49 @@ class ImageDataset(Dataset):
         return lq_image, hq_image
 
 
-# class ImageEnhancementNet(nn.Module):
-#     # first model
+class ImageEnhancementNet(nn.Module):
+    # first model
 
-#     # def __init__(self):
-#     #     super(ImageEnhancementNet, self).__init__()
-#     #     self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
-#     #     self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
-#     #     self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
-#     #     self.relu = nn.ReLU(inplace=True)
+    def __init__(self):
+        super(ImageEnhancementNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=9, padding=4)
+        self.conv2 = nn.Conv2d(64, 32, kernel_size=5, padding=2)
+        self.conv3 = nn.Conv2d(32, 3, kernel_size=5, padding=2)
+        self.relu = nn.ReLU(inplace=True)
 
-#     # def forward(self, x):
-#     #     x = self.relu(self.conv1(x))
-#     #     x = self.relu(self.conv2(x))
-#     #     x = self.conv3(x)
-#     #     return x
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.conv3(x)
+        return x
 
-#     # second model
-#     def __init__(self):
-#         super(ImageEnhancementNet, self).__init__()
-#         self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
-#         self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
-#         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
-#         self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-#         self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-#         self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
-#         self.relu = nn.ReLU(inplace=True)
-#         self.bn1 = nn.BatchNorm2d(64)
-#         self.bn2 = nn.BatchNorm2d(128)
-#         self.bn3 = nn.BatchNorm2d(256)
-#         self.bn4 = nn.BatchNorm2d(128)
-#         self.bn5 = nn.BatchNorm2d(64)
 
-#     def forward(self, x):
-#         residual = x
-#         x = self.relu(self.bn1(self.conv1(x)))
-#         x = self.relu(self.bn2(self.conv2(x)))
-#         x = self.relu(self.bn3(self.conv3(x)))
-#         x = self.relu(self.bn4(self.conv4(x)))
-#         x = self.relu(self.bn5(self.conv5(x)))
-#         x = self.conv6(x)
-#         return x + residual
+class ImageComplicatedNet(nn.Module):
+    # second model
+    def __init__(self):
+        super(ImageComplicatedNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=11, padding=5)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=5, padding=2)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        self.conv6 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.bn4 = nn.BatchNorm2d(128)
+        self.bn5 = nn.BatchNorm2d(64)
+
+    def forward(self, x):
+        residual = x
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = self.relu(self.bn4(self.conv4(x)))
+        x = self.relu(self.bn5(self.conv5(x)))
+        x = self.conv6(x)
+        return x + residual
 
 
 # google gemini pro 2.5 advanced code
@@ -286,6 +288,8 @@ def train_model(
     checkpoint_dir="checkpoints",
     log_interval=50,  # Print training progress every N batches
     save_interval=50,
+    load_model=False,
+    load_model_location="../",
 ):
     """
     Trains the ImageEnhancementNet model without using tqdm.
@@ -380,18 +384,22 @@ def train_model(
     # model = ImageEnhancementNet().to(device)
 
     # **** Instantiate the Transformer Model ****
-    model = TransformerImageEnhancer(
-        img_size=image_size,
-        patch_size=patch_size,
-        in_chans=3,
-        embed_dim=embed_dim,
-        depth=depth,
-        num_heads=num_heads,
-        mlp_ratio=mlp_ratio,
-        drop_rate=dropout_rate,
-        attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
-    ).to(device)
-    print("Initialized TransformerImageEnhancer with:")
+    if load_model == False:
+        model = TransformerImageEnhancer(
+            img_size=image_size,
+            patch_size=patch_size,
+            in_chans=settings.IN_CHANS,
+            embed_dim=embed_dim,
+            depth=depth,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=dropout_rate,
+            attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
+        ).to(device)
+        print("Initialized TransformerImageEnhancer with:")
+    else:
+        model = torch.load(load_model_location)
+        print(f"Initialized model at {load_model_location} with:")
     print(f"  img_size={image_size}, patch_size={patch_size}, embed_dim={embed_dim}")
     print(
         f"  depth={depth}, num_heads={num_heads}, mlp_ratio={mlp_ratio:.1f}, dropout={dropout_rate:.2f}"
@@ -605,18 +613,18 @@ def train_model(
 
 if __name__ == "__main__":
     # --- ADJUST THESE PARAMETERS FOR THE TRANSFORMER ---
-    transformer_patch_size = (
-        16  # e.g., 8, 16, 32 (ensure settings.IMAGE_SIZE is divisible by this)
-    )
-    transformer_embed_dim = 512  # e.g., 384, 512, 768
-    transformer_depth = 6  # e.g., 4, 6, 8, 12
-    transformer_num_heads = 8  # e.g., 6, 8, 12 (must divide embed_dim)
-    transformer_mlp_ratio = 4.0
-    transformer_dropout = 0.1
+    transformer_patch_size = settings.PATCH_SIZE
+    transformer_embed_dim = settings.EMBED_DIM
+    transformer_depth = settings.DEPTH
+    transformer_num_heads = settings.NUM_HEADS
+    transformer_mlp_ratio = settings.MLP_RATIO
+    transformer_dropout = settings.DROPOUT
 
     # --- ADJUST BATCH SIZE BASED ON GPU MEMORY ---
     # Start lower than the CNN, e.g., 32 or 64, and increase if possible
-    train_batch_size = 32  # <<<< ADJUST THIS FIRST if you get CUDA Out of Memory errors
+    train_batch_size = (
+        192 * 4
+    )  # <<<< ADJUST THIS FIRST if you get CUDA Out of Memory errors
 
     train_model(
         data_dir="../data/chunks",
@@ -638,4 +646,5 @@ if __name__ == "__main__":
         use_data_parallel=True,
         use_amp=True,  # AMP is highly recommended for Transformers
         save_interval=25,
+        load_model=False,
     )
