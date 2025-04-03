@@ -35,7 +35,7 @@ def get_imslp_files() -> None:
         i = 0
         for url in infile:
             url = url.strip()
-            print(f"\nDownloading file {i + 1}: {url}")
+            print(f"Downloading file {i + 1}: {url}")
             try:
                 command = [
                     "curl",
@@ -114,7 +114,7 @@ def make_jpegs():
     i = 0
     path = "../data/pdf_files"
     for pdf_file in sorted(os.listdir("../data/pdf_files")):
-        file_size = os.path.get_size(os.path.join(path, pdf_file))
+        file_size = os.path.getsize(os.path.join(path, pdf_file))
         if file_size < 2000:
             print(f"Warning: file {pdf_file} is probably not a valid file. Skipping...")
             continue
@@ -136,12 +136,12 @@ def make_image_pairs(cleanup=True):
     print("\n--- Making image pairs ---\n")
     i = 0
 
-    for image in os.listdir("../data/images"):
+    for image in sorted(os.listdir("../data/images")):
         if not image.endswith(".jpg"):
             continue
         if not os.path.exists(os.path.join("../data/images", str(i))):
             os.makedirs(os.path.join("../data/images", str(i)))
-        print(f"\nMaking high quality images at ../data/images/{i}/hq.jpg")
+        print(f"Making high quality images at ../data/images/{i}/hq.jpg")
         try:
             output_path = os.path.join("../data/images", str(i))
             command = [
@@ -159,7 +159,7 @@ def make_image_pairs(cleanup=True):
                 "magick",
                 "../data/images/" + image,
                 "-resize",
-                "25%",
+                "12.5%",
                 "-quality",
                 "15",
                 os.path.join(output_path, "lq.jpg"),
@@ -171,7 +171,7 @@ def make_image_pairs(cleanup=True):
                 "magick",
                 output_path + "/lq.jpg",
                 "-resize",
-                "400%",
+                "800%",
                 "-quality",
                 "100",
                 os.path.join(output_path, "lq.jpg"),

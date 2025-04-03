@@ -18,7 +18,7 @@ def upscale_file(
     input_file_name,
     model_file_name="enhanced_model_checkpoints_no_tqdm/checkpoint_best.pth",
     multiple_gpus=False,
-    model_type="simple",  # either "simple", "complex", or "transformer"
+    model_type="",  # either "simple", "complex", or "transformer"
 ):
     """
     upscales a file given its parent directory, name, the path to the model, and some other information
@@ -57,12 +57,14 @@ def upscale_file(
     # --- Load Model Correctly ---
     print(f"Loading model state dict from: {model_file_name}")
     # 1. Instantiate the base model
+
+    model = None
     if model_type == "simple":
         model = network.ImageEnhancementNet()
     elif model_type == "complex":
         model = network.ImageComplicatedNet()
     elif model_type == "transformer":
-        model == network.TransformerImageEnhancer(
+        model = network.TransformerImageEnhancer(
             img_size=settings.IMAGE_SIZE,
             patch_size=settings.PATCH_SIZE,
             in_chans=settings.IN_CHANS,
@@ -90,7 +92,6 @@ def upscale_file(
         state_dict = checkpoint
         print("Loaded raw state dict (epoch information not found in checkpoint).")
 
-    # Optional: Clean keys if they were saved with 'module.' prefix (e.g., from saving DataParallel directly)
     # This shouldn't be needed if train_model saved model.module.state_dict() correctly
     cleaned_state_dict = {}
     prefix = "module."
