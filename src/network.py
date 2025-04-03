@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import settings
 
 import os
 import torch
@@ -10,10 +9,14 @@ import torch.nn.functional as F  # Needed for GELU in TransformerEncoderLayer
 import torch.optim as optim
 from torchvision import transforms
 from PIL import Image
-import numpy as np
-import cv2
 import time
 import math  # For isnan check
+
+if not os.path.exists("local_settings.py"):
+    print("Warning: local settings not found. Using default settings.")
+    import settings
+else:
+    import local_settings as settings
 
 # thanks gemini 2.5 pro ;)
 
@@ -345,7 +348,7 @@ def train_model(
         print(
             f"Warning: Dataset size ({len(full_dataset)}) too small for validation split ({val_split}). Using entire dataset for training."
         )
-        train_dataset = full_dataset
+        train_dataset = ImageDataset(root_dir=data_dir, transform=transform)
         val_dataset = None
         train_loader = DataLoader(
             train_dataset,
@@ -460,9 +463,7 @@ def train_model(
         batch_start_time = time.time()  # For estimating time per batch/log interval
 
         for i, (inputs, targets) in enumerate(train_loader):
-            inputs, targets = (inputs + torch.randn_like(inputs) * 0.2).to(
-                device
-            ), targets.to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad(
                 set_to_none=True
@@ -638,7 +639,7 @@ if __name__ == "__main__":
     # --- ADJUST BATCH SIZE BASED ON GPU MEMORY ---
     # Start lower than the CNN, e.g., 32 or 64, and increase if possible
     train_batch_size = (
-        192 * 4
+        settings.BATCH_SIZE
     )  # <<<< ADJUST THIS FIRST if you get CUDA Out of Memory errors
 
     train_model(
@@ -655,10 +656,10 @@ if __name__ == "__main__":
         learning_rate=0.001,  # Start with 0.001 or 0.0005, might need tuning
         lr_step_size=50,
         lr_gamma=0.5,
-        num_workers=8,
+        num_workers=settings.NUM_WORKERS,
         checkpoint_dir="../transformer_checkpoints",  # Use a different dir maybe
         log_interval=20,
-        use_data_parallel=False,
+        use_data_parallel=settings.USE_DATA_PARALLEL,
         use_amp=True,  # AMP is highly recommended for Transformers
         save_interval=25,
         load_checkpoint=False,

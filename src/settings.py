@@ -15,3 +15,9 @@ NUM_HEADS = 8
 MLP_RATIO = 4.0
 DROPOUT = 0.1
 IN_CHANS = 3
+
+# local settings
+
+NUM_WORKERS = 8
+USE_DATA_PARALLEL = True
+BATCH_SIZE = 32
