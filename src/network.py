@@ -432,6 +432,8 @@ def train_model(
         print("Loading checkpoint")
         checkpoint = torch.load(load_checkpoint_location)
         state_dict = checkpoint["model_state_dict"]
+        if any(key.startswith("module.") for key in state_dict.keys()):
+            state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
         model.load_state_dict(state_dict)
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler.load_state_dict("scheduler_state_dict")
