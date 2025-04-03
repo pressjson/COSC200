@@ -288,8 +288,8 @@ def train_model(
     checkpoint_dir="checkpoints",
     log_interval=50,  # Print training progress every N batches
     save_interval=50,
-    load_model=False,
-    load_model_location="../",
+    load_checkpoint=False,
+    load_checkpoint_location="../",
 ):
     """
     Trains the ImageEnhancementNet model without using tqdm.
@@ -384,22 +384,18 @@ def train_model(
     # model = ImageEnhancementNet().to(device)
 
     # **** Instantiate the Transformer Model ****
-    if load_model == False:
-        model = TransformerImageEnhancer(
-            img_size=image_size,
-            patch_size=patch_size,
-            in_chans=settings.IN_CHANS,
-            embed_dim=embed_dim,
-            depth=depth,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=dropout_rate,
-            attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
-        ).to(device)
-        print("Initialized TransformerImageEnhancer with:")
-    else:
-        model = torch.load(load_model_location)
-        print(f"Initialized model at {load_model_location} with:")
+    model = TransformerImageEnhancer(
+        img_size=image_size,
+        patch_size=patch_size,
+        in_chans=settings.IN_CHANS,
+        embed_dim=embed_dim,
+        depth=depth,
+        num_heads=num_heads,
+        mlp_ratio=mlp_ratio,
+        drop_rate=dropout_rate,
+        attn_drop_rate=dropout_rate,  # Often set same as drop_rate initially
+    ).to(device)
+    print("Initialized TransformerImageEnhancer with:")
     print(f"  img_size={image_size}, patch_size={patch_size}, embed_dim={embed_dim}")
     print(
         f"  depth={depth}, num_heads={num_heads}, mlp_ratio={mlp_ratio:.1f}, dropout={dropout_rate:.2f}"
@@ -427,6 +423,14 @@ def train_model(
     scheduler = optim.lr_scheduler.StepLR(
         optimizer, step_size=lr_step_size, gamma=lr_gamma
     )
+
+    # load a previous state dict
+    if load_checkpoint == True:
+        print("Loading checkpoint")
+        checkpoint = torch.load(load_checkpoint_location)
+        state_dict = checkpoint["model_state_dict"]
+        model.load_state_dict(state_dict)
+        print("Checkpoint state dict loaded")
 
     # --- Training Loop ---
     best_val_loss = float("inf")
@@ -646,5 +650,5 @@ if __name__ == "__main__":
         use_data_parallel=True,
         use_amp=True,  # AMP is highly recommended for Transformers
         save_interval=25,
-        load_model=False,
+        load_checkpoint=False,
     )
