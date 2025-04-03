@@ -424,17 +424,21 @@ def train_model(
         optimizer, step_size=lr_step_size, gamma=lr_gamma
     )
 
+    best_val_loss = float("inf")
+    start_epoch = 1
+
     # load a previous state dict
     if load_checkpoint == True:
         print("Loading checkpoint")
         checkpoint = torch.load(load_checkpoint_location)
         state_dict = checkpoint["model_state_dict"]
         model.load_state_dict(state_dict)
-        print("Checkpoint state dict loaded")
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict("scheduler_state_dict")
+        start_epoch = checkpoint["epoch"]
+        print("Checkpoint loaded")
 
     # --- Training Loop ---
-    best_val_loss = float("inf")
-    start_epoch = 1
 
     # TODO: Add checkpoint loading logic here if needed
     # E.g., check for latest checkpoint, load state_dicts for model, optimizer, scheduler, epoch, best_val_loss
