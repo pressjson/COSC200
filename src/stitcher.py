@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
-import settings
 
 import os
 import re
 from PIL import Image
+
+if not os.path.exists("local_settings.py"):
+    print("Warning: local settings not found. Using default settings.")
+    import settings
+else:
+    import local_settings as settings
 
 
 def stitch_images(name, directory, delta=settings.DELTA):
