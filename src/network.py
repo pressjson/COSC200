@@ -3,13 +3,15 @@
 
 import os
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader  # random_split
 import torch.nn as nn
 import torch.nn.functional as F  # Needed for GELU in TransformerEncoderLayer
 import torch.optim as optim
 from torchvision import transforms
+from torchvision.transforms import v2
 from PIL import Image
 import time
+import random
 import math  # For isnan check
 
 if not os.path.exists("local_settings.py"):
@@ -179,37 +181,45 @@ class TransformerImageEnhancer(nn.Module):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root_dir="../data/chunks", transform=None):
-        self.lq_images = []
-        self.hq_images = []
-        self.transform = transform
+    def __init__(
+        self,
+        root_dir="../data/chunks",
+        hq_images=None,
+        lq_images=None,
+        hq_transform=None,
+        lq_transform=None,
+    ):
+        self.lq_images = lq_images
+        self.hq_images = hq_images
+        self.hq_transform = hq_transform
+        self.lq_transform = lq_transform
         self.root_dir = root_dir
 
-        hq_files = {}
-        lq_files = {}
+        # hq_files = {}
+        # lq_files = {}
 
-        for subdirectory in sorted(os.listdir(root_dir)):
-            for filename in sorted(os.listdir(os.path.join(root_dir, subdirectory))):
-                if "hq" in filename:
-                    self.hq_images.append(
-                        os.path.join(root_dir, subdirectory, filename)
-                    )
-                else:
-                    self.lq_images.append(
-                        os.path.join(root_dir, subdirectory, filename)
-                    )
-        for base_name, hq_path in hq_files.items():
-            if base_name in lq_files:
-                self.hq_images.append(hq_path)
-                self.lq_images.append(lq_files[base_name])
-            else:
-                print(f"Warning: HQ image {hq_path} found without matching LQ image.")
+        # for subdirectory in sorted(os.listdir(root_dir)):
+        #     for filename in sorted(os.listdir(os.path.join(root_dir, subdirectory))):
+        #         if "hq" in filename:
+        #             self.hq_images.append(
+        #                 os.path.join(root_dir, subdirectory, filename)
+        #             )
+        #         else:
+        #             self.lq_images.append(
+        #                 os.path.join(root_dir, subdirectory, filename)
+        #             )
+        # for base_name, hq_path in hq_files.items():
+        #     if base_name in lq_files:
+        #         self.hq_images.append(hq_path)
+        #         self.lq_images.append(lq_files[base_name])
+        #     else:
+        #         print(f"Warning: HQ image {hq_path} found without matching LQ image.")
 
-        print(f"Found {len(self.hq_images)} paired images.")
-        if len(self.hq_images) == 0:
-            raise ValueError(
-                f"No paired images found in {root_dir}. Check file naming and structure."
-            )
+        # print(f"Found {len(self.hq_images)} paired images.")
+        # if len(self.hq_images) == 0:
+        #     raise ValueError(
+        #         f"No paired images found in {root_dir}. Check file naming and structure."
+        #     )
 
     def __len__(self):
         return len(self.hq_images)
@@ -217,9 +227,9 @@ class ImageDataset(Dataset):
     def __getitem__(self, i):
         lq_image = Image.open(self.lq_images[i]).convert("RGB")
         hq_image = Image.open(self.hq_images[i]).convert("RGB")
-        if self.transform:
-            lq_image = self.transform(lq_image)
-            hq_image = self.transform(hq_image)
+        if self.hq_transform:
+            lq_image = self.lq_transform(lq_image)
+            hq_image = self.hq_transform(hq_image)
         return lq_image, hq_image
 
 
@@ -334,21 +344,65 @@ def train_model(
             transforms.ToTensor(),
         ]
     )
+    train_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.RandomApply(
+                transforms=[
+                    transforms.RandomAutocontrast(),
+                    v2.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5.0)),
+                    v2.GaussianNoise(0.5, 0.2, 0),
+                ],
+                p=0.9,
+            ),
+        ]
+    )
+    # --- Load the data ---
+    print("Loading data into memory")
 
-    full_dataset = ImageDataset(root_dir=data_dir, transform=transform)
+    hq_images = []
+    lq_images = []
 
-    if len(full_dataset) == 0:
-        print("Error: Dataset is empty after initialization.")
-        return
+    hq_files = {}
+    lq_files = {}
+    for subdirectory in sorted(os.listdir(data_dir)):
+        for filename in sorted(os.listdir(os.path.join(data_dir, subdirectory))):
+            if "hq" in filename:
+                hq_images.append(os.path.join(data_dir, subdirectory, filename))
+            else:
+                lq_images.append(os.path.join(data_dir, subdirectory, filename))
+    for base_name, hq_path in hq_files.items():
+        if base_name in lq_files:
+            hq_images.append(hq_path)
+            lq_images.append(lq_files[base_name])
+        else:
+            print(f"Warning: HQ image {hq_path} found without matching LQ image.")
+
+    print(f"Found {len(hq_images)} paired images.")
+
+    if len(hq_images) == 0:
+        raise ValueError(
+            f"No paired images found in {data_dir}. Check file naming and structure."
+        )
+    # full_dataset = ImageDataset(
+    #     hq_images=hq_images, lq_images=lq_images, transform=transform
+    # )
+
+    # if len(full_dataset) == 0:
+    #     print("Error: Dataset is empty after initialization.")
+    #     return
 
     # Split dataset
-    val_size = int(val_split * len(full_dataset))
-    train_size = len(full_dataset) - val_size
+    val_size = int(val_split * len(hq_images))
+    train_size = len(hq_images) - val_size
     if train_size <= 0 or val_size <= 0:  # Ensure both splits are viable
         print(
-            f"Warning: Dataset size ({len(full_dataset)}) too small for validation split ({val_split}). Using entire dataset for training."
+            f"Warning: Dataset size ({len(hq_images)}) too small for validation split ({val_split}). Using entire dataset for training."
         )
-        train_dataset = ImageDataset(root_dir=data_dir, transform=transform)
+        train_dataset = ImageDataset(
+            hq_images=hq_images, lq_images=lq_images, transform=train_transform
+        )
         val_dataset = None
         train_loader = DataLoader(
             train_dataset,
@@ -362,7 +416,31 @@ def train_model(
         val_loader = None
         total_train_batches = len(train_loader)
     else:
-        train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+        # train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+        # all_data = [full_dataset[i] for i in range(len(full_dataset))]
+        indices = list(range(len(hq_images)))
+        random.shuffle(indices)
+
+        train_indices = indices[:train_size]
+        val_indices = indices[train_size:]
+
+        train_hq_data_list = [hq_images[i] for i in train_indices]
+        train_lq_data_list = [lq_images[i] for i in train_indices]
+        val_hq_data_list = [hq_images[i] for i in val_indices]
+        val_lq_data_list = [lq_images[i] for i in val_indices]
+
+        train_dataset = ImageDataset(
+            hq_images=train_hq_data_list,
+            lq_images=train_lq_data_list,
+            hq_transform=transform,
+            lq_transform=train_transform,
+        )
+        val_dataset = ImageDataset(
+            hq_images=val_hq_data_list,
+            lq_images=val_lq_data_list,
+            hq_transform=transform,
+            lq_transform=transform,
+        )
         print(
             f"Dataset split: {train_size} training samples, {val_size} validation samples"
         )
